@@ -14,7 +14,7 @@ A **task** is one piece of text to analyze. Processing a task produces statistic
 | `Runes` | characters (Unicode code points) — `utf8.RuneCountInString` |
 | `Bytes` | size in UTF-8 bytes — `len` (Cyrillic letters take 2 bytes) |
 | `Letters` | letters of any alphabet (`unicode.IsLetter`) |
-| `Sentences` | sentence-ending marks `.` `!` `?` |
+| `Sentences` | sentence endings; a run of `.` `!` `?` counts once (`"..."` = 1, `"?!"` = 1) |
 | `TopWord`, `TopWordCount` | most frequent word (lower-cased, punctuation trimmed; ties → alphabetically first) |
 
 Example:
@@ -24,8 +24,8 @@ Input:  "Go is fast. Go is simple! Is Go fun?"
 Result: words=9 runes=36 bytes=36 letters=25 sentences=3 top="go" x3
 ```
 
-**Validation rule:** empty or whitespace-only text is rejected with `ErrInvalidInput` —
-there is nothing to analyze.
+**Validation rules:** text is rejected with `ErrInvalidInput` when there is nothing to analyze:
+it is empty, whitespace only, or contains no letters or digits (e.g. `"!!!"`).
 
 ## How to run
 
@@ -91,7 +91,7 @@ golang-sis/
 
 ## Tests
 
-`go test ./...` covers: successful creation, invalid input (table-driven), retrieval,
+`go test ./...` covers: successful creation, invalid input (table-driven: empty, whitespace, punctuation only), retrieval,
 retrieval of a nonexistent task, processing, result correctness (table-driven, including
 Cyrillic text where runes ≠ bytes), status after processing, invalid transitions
 (processing twice, a full transition table), multiple independent tasks, `Get` returning a

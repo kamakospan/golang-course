@@ -22,7 +22,7 @@ type TextStats struct {
 	Runes        int    // characters (Unicode code points)
 	Bytes        int    // bytes in UTF-8
 	Letters      int    // letters only, any alphabet
-	Sentences    int    // sentence-ending marks: . ! ?
+	Sentences    int    // sentence endings: a run of . ! ? counts once ("..." = 1)
 	TopWord      string // most frequent word, lower-case, punctuation trimmed
 	TopWordCount int
 }
@@ -34,14 +34,23 @@ type TextAnalyzer struct{}
 // Compile-time check that TextAnalyzer satisfies Processor.
 var _ Processor = TextAnalyzer{}
 
-// Validate rejects text that is empty or contains only whitespace:
-// there is nothing to analyze in it.
+// Validate rejects text that has nothing to analyze: empty, whitespace only,
+// or without a single letter or digit (e.g. "!!!").
 func (TextAnalyzer) Validate(input string) error {
 	if strings.TrimSpace(input) == "" {
 		return fmt.Errorf("text is empty or whitespace only: %w", ErrInvalidInput)
 	}
+	if strings.IndexFunc(input, isWordRune) == -1 {
+		return fmt.Errorf("text has no letters or digits: %w", ErrInvalidInput)
+	}
 	return nil
 }
+
+// isWordRune reports whether r can be part of a word.
+func isWordRune(r rune) bool { return unicode.IsLetter(r) || unicode.IsDigit(r) }
+
+// isSentenceEnd reports whether r ends a sentence.
+func isSentenceEnd(r rune) bool { return r == '.' || r == '!' || r == '?' }
 
 // Process analyzes the text.
 func (a TextAnalyzer) Process(input string) (TextStats, error) {
@@ -56,13 +65,17 @@ func (a TextAnalyzer) Process(input string) (TextStats, error) {
 		Bytes: len(input),
 	}
 
+	prevEnd := false
 	for _, r := range input { // range over a string yields runes, not bytes
 		if unicode.IsLetter(r) {
 			stats.Letters++
 		}
-		if r == '.' || r == '!' || r == '?' {
+		// A run of marks like "..." or "?!" ends one sentence, not several.
+		end := isSentenceEnd(r)
+		if end && !prevEnd {
 			stats.Sentences++
 		}
+		prevEnd = end
 	}
 
 	stats.TopWord, stats.TopWordCount = topWord(words)
@@ -74,9 +87,7 @@ func (a TextAnalyzer) Process(input string) (TextStats, error) {
 func topWord(words []string) (string, int) {
 	counts := make(map[string]int, len(words))
 	for _, w := range words {
-		w = strings.ToLower(strings.TrimFunc(w, func(r rune) bool {
-			return !unicode.IsLetter(r) && !unicode.IsDigit(r)
-		}))
+		w = strings.ToLower(strings.TrimFunc(w, func(r rune) bool { return !isWordRune(r) }))
 		if w != "" {
 			counts[w]++
 		}

@@ -17,6 +17,7 @@ func main() {
 		"Go is fast. Go is simple! Is Go fun?",
 		"Привет, мир! Қазақстан — Go.",
 		"   ", // invalid: whitespace only
+		"!!!", // invalid: no letters or digits
 	}
 
 	fmt.Println("== Create tasks ==")

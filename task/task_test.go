@@ -36,6 +36,7 @@ func TestCreate_Validation(t *testing.T) {
 		{"empty", "", true},
 		{"spaces only", "    ", true},
 		{"tabs and newlines", "\t\n \n", true},
+		{"punctuation only", "!!! ...", true},
 		{"single word", "go", false},
 		{"cyrillic text", "Привет мир", false},
 		{"text with surrounding spaces", "  hi  ", false},
@@ -107,6 +108,16 @@ func TestProcess_ResultAndState(t *testing.T) {
 			name:  "repeated word and punctuation",
 			input: "Go is fast. Go is simple! Is Go fun?",
 			want:  TextStats{Words: 9, Runes: 36, Bytes: 36, Letters: 25, Sentences: 3, TopWord: "go", TopWordCount: 3},
+		},
+		{
+			name:  "ellipsis and ?! end one sentence each",
+			input: "Wait... what?!",
+			want:  TextStats{Words: 2, Runes: 14, Bytes: 14, Letters: 8, Sentences: 2, TopWord: "wait", TopWordCount: 1},
+		},
+		{
+			name:  "case-insensitive word count",
+			input: "go GO Go.",
+			want:  TextStats{Words: 3, Runes: 9, Bytes: 9, Letters: 6, Sentences: 1, TopWord: "go", TopWordCount: 3},
 		},
 		{
 			name:  "cyrillic: runes differ from bytes",
